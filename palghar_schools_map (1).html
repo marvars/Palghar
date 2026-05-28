@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Palghar Ashram Schools — Counsellor Deployment Map</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  :root {
+    --jawhar:   #2563EB;
+    --mokhada:  #059669;
+    --vikramgad:#D97706;
+    --wada:     #DC2626;
+    --bg:       #F8F7F4;
+    --surface:  #FFFFFF;
+    --border:   #E5E3DE;
+    --text:     #1A1917;
+    --muted:    #78746D;
+    --near-bg:  #DCFCE7; --near-text: #166534;
+    --mid-bg:   #FEF9C3;  --mid-text:  #854D0E;
+    --far-bg:   #FEE2E2;  --far-text:  #991B1B;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 18px 32px;
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+  }
+
+  header h1 {
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+  }
+
+  header p {
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  .tabs {
+    display: flex;
+    gap: 0;
+    padding: 0 32px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .tab {
+    padding: 12px 20px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    background: none;
+    color: var(--muted);
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    font-family: 'DM Sans', sans-serif;
+    transition: color 0.15s;
+  }
+
+  .tab.active {
+    color: var(--text);
+    border-bottom-color: var(--text);
+  }
+
+  .tab:hover:not(.active) { color: var(--text); }
+
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* MAP */
+  #map {
+    width: 100%;
+    height: calc(100vh - 100px);
+  }
+
+  .legend {
+    background: white;
+    padding: 12px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    line-height: 1;
+  }
+
+  .legend-title {
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 7px;
+    color: #1A1917;
+  }
+
+  .legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .legend-sq {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  /* TABLE VIEW */
+  #view-table {
+    padding: 28px 32px;
+    max-width: 1100px;
+  }
+
+  .block-section { margin-bottom: 36px; }
+
+  .block-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--border);
+  }
+
+  .block-header .block-name {
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: -0.2px;
+  }
+
+  .block-header .block-count {
+    font-size: 12px;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+  }
+
+  .block-colour-bar {
+    width: 4px;
+    height: 20px;
+    border-radius: 2px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    background: var(--surface);
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+
+  thead th {
+    background: #F3F2EE;
+    padding: 10px 14px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+  }
+
+  tbody tr { border-bottom: 1px solid var(--border); }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: #FAFAF8; }
+
+  tbody td {
+    padding: 10px 14px;
+    vertical-align: middle;
+  }
+
+  .school-num {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    width: 36px;
+  }
+
+  .school-name { font-weight: 500; }
+
+  .hm-name {
+    color: var(--muted);
+    font-size: 12px;
+  }
+
+  .dist-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    font-family: 'DM Mono', monospace;
+  }
+
+  .near { background: var(--near-bg); color: var(--near-text); }
+  .mid  { background: var(--mid-bg);  color: var(--mid-text);  }
+  .far  { background: var(--far-bg);  color: var(--far-text);  }
+
+  .km-val {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  /* custom Leaflet popup */
+  .leaflet-popup-content-wrapper {
+    border-radius: 8px !important;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.12) !important;
+    font-family: 'DM Sans', sans-serif !important;
+    padding: 0 !important;
+  }
+  .leaflet-popup-content {
+    margin: 0 !important;
+    width: auto !important;
+  }
+  .popup-inner {
+    padding: 14px 16px;
+    min-width: 180px;
+  }
+  .popup-num {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: #78746D;
+    margin-bottom: 2px;
+  }
+  .popup-name {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .popup-block {
+    font-size: 12px;
+    margin-bottom: 8px;
+  }
+  .popup-hm {
+    font-size: 11px;
+    color: #78746D;
+    margin-bottom: 6px;
+  }
+  .popup-dist {
+    font-size: 12px;
+    font-family: 'DM Mono', monospace;
+    padding-top: 8px;
+    border-top: 1px solid #E5E3DE;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Palghar Ashram Schools — Counsellor Deployment Map</h1>
+  <p>30 schools across Jawhar, Mokhada, Vikramgad &amp; Wada blocks</p>
+</header>
+
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('map', this)">Map view</button>
+  <button class="tab" onclick="switchTab('table', this)">Distance table</button>
+</div>
+
+<div id="view-map" class="view active">
+  <div id="map"></div>
+</div>
+
+<div id="view-table" class="view">
+</div>
+
+<script>
+const CENTRES = {
+  Jawhar:    { lat: 19.9050, lon: 73.2313, color: '#2563EB' },
+  Mokhada:   { lat: 19.9170, lon: 73.3520, color: '#059669' },
+  Vikramgad: { lat: 19.7973, lon: 73.0956, color: '#D97706' },
+  Wada:      { lat: 19.6516, lon: 73.1484, color: '#DC2626' },
+};
+
+const SCHOOLS = [
+  { n:1,  v:'Vinval',        hm:'Nitin Kishor Agme',          block:'Jawhar',    lat:20.0013, lon:73.2566 },
+  { n:2,  v:'Nadgaon',       hm:'Andhale S. R.',               block:'Jawhar',    lat:19.9700, lon:73.2100 },
+  { n:3,  v:'Dehere',        hm:'Shashikant Raghunath Aware',  block:'Jawhar',    lat:20.0018, lon:73.1748 },
+  { n:4,  v:'Zhap',          hm:'Dhiraj Parmeshwar Kankal',    block:'Jawhar',    lat:19.9400, lon:73.2600 },
+  { n:5,  v:'Sakur (Girls)', hm:'B. J. Waghmare',              block:'Jawhar',    lat:19.8633, lon:73.2338 },
+  { n:6,  v:'Nyahale',       hm:'Mhaske V. B.',                block:'Jawhar',    lat:19.9600, lon:73.1850 },
+  { n:7,  v:'Dabhosa',       hm:'Dhiraj Janardan Jamnik',      block:'Jawhar',    lat:20.0066, lon:73.2021 },
+  { n:8,  v:'Dabhosa (Boys)',hm:'Lute',                         block:'Jawhar',    lat:20.0066, lon:73.2050 },
+  { n:9,  v:'Wangani',       hm:'Pramod Shipi',                block:'Jawhar',    lat:20.0557, lon:73.2625 },
+  { n:10, v:'Ozar',          hm:'K. G. Chougule',              block:'Jawhar',    lat:20.0057, lon:73.1195 },
+  { n:11, v:'Aina',          hm:'Dilip Rama Khutade',          block:'Jawhar',    lat:19.8400, lon:73.2268 },
+  { n:12, v:'Hirve',         hm:'R. A. Raskar',                block:'Mokhada',   lat:19.9832, lon:73.3856 },
+  { n:13, v:'Suryamal',      hm:'Pravin Dattatray Chinchore',  block:'Mokhada',   lat:19.7468, lon:73.3422 },
+  { n:14, v:'Gonde',         hm:'Ashok Nathu Patil',           block:'Mokhada',   lat:19.9300, lon:73.3700 },
+  { n:15, v:'Karegaon',      hm:'Nandkumar Nivrutti Pawar',    block:'Mokhada',   lat:19.7360, lon:73.4563 },
+  { n:16, v:'Palsunde',      hm:'B. M. Sakalde',               block:'Mokhada',   lat:19.8725, lon:73.3900 },
+  { n:17, v:'Chas',          hm:'Sanjay Namdevrao Gadhe',      block:'Mokhada',   lat:19.9738, lon:73.3178 },
+  { n:18, v:'Dhamangaon',    hm:'Rajesh Namdev Bagale',        block:'Mokhada',   lat:19.9309, lon:73.3387 },
+  { n:19, v:'Mohpada',       hm:'Husain Lotan Bagale',         block:'Mokhada',   lat:19.9200, lon:73.3300 },
+  { n:20, v:'Surgana',       hm:'Bhagwan Pandurang Patole',    block:'Mokhada',   lat:19.9500, lon:73.4200 },
+  { n:21, v:'Sarshi',        hm:'Suresh Rama Khand',           block:'Vikramgad', lat:19.8991, lon:73.0228 },
+  { n:22, v:'Karhe',         hm:'Pandurang Mangalya Masram',   block:'Vikramgad', lat:19.8999, lon:73.1202 },
+  { n:23, v:'Kawale',        hm:'Anil Hiraman Jadhav',         block:'Vikramgad', lat:19.7001, lon:73.1139 },
+  { n:24, v:'Kurli',         hm:'Prashant Pandurang Gadade',   block:'Vikramgad', lat:19.7600, lon:73.0800 },
+  { n:25, v:'Pali',          hm:'Dashrath Narayan Pawar',      block:'Wada',      lat:19.6702, lon:73.0767 },
+  { n:26, v:'Dudhavali',     hm:'Vasant Kundlik Kene',         block:'Wada',      lat:19.7000, lon:73.0500 },
+  { n:27, v:'Gargasgaon',    hm:'Suresh Maroti Damde',         block:'Wada',      lat:19.7200, lon:73.1300 },
+  { n:28, v:'Guhir',         hm:'Rajan Vasu Kambale',          block:'Wada',      lat:19.6893, lon:72.9534 },
+  { n:29, v:'Aamgaon',       hm:'Jayant Kantilal Chavan',      block:'Wada',      lat:19.7062, lon:72.9800 },
+  { n:30, v:'Kalambhe',      hm:'Mahesh Shivaji Sarule',       block:'Wada',      lat:19.6596, lon:73.2507 },
+];
+
+function haversine(lat1, lon1, lat2, lon2) {
+  const R = 6371, dLat = (lat2-lat1)*Math.PI/180, dLon = (lon2-lon1)*Math.PI/180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+  return +(R*2*Math.atan2(Math.sqrt(a), Math.sqrt(1-a))).toFixed(1);
+}
+
+function distBand(km) {
+  if (km < 8)  return 'near';
+  if (km < 15) return 'mid';
+  return 'far';
+}
+
+function distLabel(km) {
+  const band = distBand(km);
+  const label = band === 'near' ? 'Near' : band === 'mid' ? 'Mid' : 'Far';
+  return `<span class="dist-badge ${band}">${label}</span> <span class="km-val">${km} km</span>`;
+}
+
+SCHOOLS.forEach(s => {
+  const c = CENTRES[s.block];
+  s.distToBlock = haversine(s.lat, s.lon, c.lat, c.lon);
+  s.band = distBand(s.distToBlock);
+});
+
+/* ---- MAP ---- */
+let mapInitialised = false;
+
+function initMap() {
+  if (mapInitialised) return;
+  mapInitialised = true;
+
+  const map = L.map('map', { zoomControl: true }).setView([19.85, 73.20], 10);
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 18,
+    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+  }).addTo(map);
+
+  const blockColors = { Jawhar:'#2563EB', Mokhada:'#059669', Vikramgad:'#D97706', Wada:'#DC2626' };
+
+  // Draw lines from each school to its block centre
+  SCHOOLS.forEach(s => {
+    const c = CENTRES[s.block];
+    L.polyline([[s.lat, s.lon],[c.lat, c.lon]], {
+      color: blockColors[s.block], weight: 1, opacity: 0.2, dashArray: '4 4'
+    }).addTo(map);
+  });
+
+  // School markers
+  SCHOOLS.forEach(s => {
+    const color = blockColors[s.block];
+    const icon = L.divIcon({
+      className: '',
+      html: `<div style="
+        width:22px;height:22px;border-radius:50%;
+        background:${color};color:white;
+        display:flex;align-items:center;justify-content:center;
+        font-family:'DM Mono',monospace;font-size:9px;font-weight:500;
+        border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.25);
+        cursor:pointer;
+      ">${s.n}</div>`,
+      iconSize: [22, 22], iconAnchor: [11, 11], popupAnchor: [0, -14]
+    });
+
+    const bandLabel = s.band === 'near' ? '🟢 Near' : s.band === 'mid' ? '🟡 Mid' : '🔴 Far';
+
+    L.marker([s.lat, s.lon], { icon }).addTo(map)
+      .bindPopup(`
+        <div class="popup-inner">
+          <div class="popup-num">#${s.n}</div>
+          <div class="popup-name">${s.v}</div>
+          <div class="popup-block" style="color:${color}">▪ ${s.block} block</div>
+          <div class="popup-hm">HM: ${s.hm}</div>
+          <div class="popup-dist">${bandLabel} &nbsp;·&nbsp; ${s.distToBlock} km from ${s.block}</div>
+        </div>
+      `, { maxWidth: 240 });
+  });
+
+  // Block centre markers (squares)
+  Object.entries(CENTRES).forEach(([name, c]) => {
+    const icon = L.divIcon({
+      className: '',
+      html: `<div style="
+        width:28px;height:28px;border-radius:5px;
+        background:${c.color};color:white;
+        display:flex;align-items:center;justify-content:center;
+        font-family:'DM Sans',sans-serif;font-size:10px;font-weight:700;
+        border:2.5px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3);
+      ">${name[0]}</div>`,
+      iconSize: [28, 28], iconAnchor: [14, 14], popupAnchor: [0, -16]
+    });
+    L.marker([c.lat, c.lon], { icon }).addTo(map)
+      .bindPopup(`<div class="popup-inner"><div class="popup-name">${name}</div><div style="font-size:12px;color:#78746D">Block centre</div></div>`);
+  });
+
+  // Legend
+  const legend = L.control({ position: 'bottomright' });
+  legend.onAdd = () => {
+    const div = L.DomUtil.create('div', 'legend');
+    div.innerHTML = `
+      <div class="legend-title">Blocks</div>
+      ${Object.entries(blockColors).map(([b,c]) =>
+        `<div class="legend-item"><span class="legend-dot" style="background:${c}"></span>${b}</div>`
+      ).join('')}
+      <div class="legend-item" style="margin-top:8px"><span class="legend-sq" style="background:#333"></span>Block centre</div>
+      <div style="border-top:1px solid #E5E3DE;margin:8px 0 4px"></div>
+      <div class="legend-title">Distance band</div>
+      <div class="legend-item"><span style="display:inline-block;width:10px;height:10px;border-radius:10px;background:#DCFCE7;border:1px solid #166534"></span><span style="color:#166534;font-weight:600">Near</span> &lt;8 km</div>
+      <div class="legend-item"><span style="display:inline-block;width:10px;height:10px;border-radius:10px;background:#FEF9C3;border:1px solid #854D0E"></span><span style="color:#854D0E;font-weight:600">Mid</span> 8–15 km</div>
+      <div class="legend-item"><span style="display:inline-block;width:10px;height:10px;border-radius:10px;background:#FEE2E2;border:1px solid #991B1B"></span><span style="color:#991B1B;font-weight:600">Far</span> &gt;15 km</div>
+    `;
+    return div;
+  };
+  legend.addTo(map);
+}
+
+/* ---- TABLE ---- */
+function buildTable() {
+  const container = document.getElementById('view-table');
+  const blocks = ['Jawhar', 'Mokhada', 'Vikramgad', 'Wada'];
+  const blockColors = { Jawhar:'#2563EB', Mokhada:'#059669', Vikramgad:'#D97706', Wada:'#DC2626' };
+
+  let html = '';
+
+  blocks.forEach(block => {
+    const bSchools = SCHOOLS.filter(s => s.block === block);
+    html += `
+    <div class="block-section">
+      <div class="block-header">
+        <div class="block-colour-bar" style="background:${blockColors[block]}"></div>
+        <span class="block-name">${block} Block</span>
+        <span class="block-count">${bSchools.length} schools</span>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Village / School</th>
+            <th>Headmaster</th>
+            <th>Distance from ${block}</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${bSchools.map(s => `
+            <tr>
+              <td class="school-num">${s.n}</td>
+              <td class="school-name">${s.v}</td>
+              <td class="hm-name">${s.hm}</td>
+              <td>${distLabel(s.distToBlock)}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>`;
+  });
+
+  container.innerHTML = html;
+}
+
+/* ---- TAB SWITCHING ---- */
+function switchTab(name, btn) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('view-' + name).classList.add('active');
+  btn.classList.add('active');
+  if (name === 'map') initMap();
+}
+
+// Initialise
+buildTable();
+initMap();
+</script>
+</body>
+</html>
